@@ -16,7 +16,7 @@ const dbPath = path.join(dbDir, 'db.json');
 if (!fs.existsSync(dbPath)) fs.writeFileSync(dbPath, '{}');
 const adapter = new FileSync(dbPath);
 const db = low(adapter);
-db.defaults({ menu: [], orders: [], nextOrderId: 1 }).write();
+db.defaults({ menu: [], orders: [], bills: [], nextOrderId: 1, nextBillId: 1 }).write();
 
 // Seed menu if empty
 if (db.get('menu').size().value() === 0) {
@@ -106,6 +106,74 @@ app.delete('/api/menu/:id', (req, res) => {
   res.json({ success: true });
 });
 
+// Get a specific bill (for printing/reprinting)
+app.get('/api/bill/receipt/:id', (req, res) => {
+  const bill = db.get('bills').find({ id: parseInt(req.params.id) }).value();
+  if (!bill) return res.status(404).json({ error: 'Bill not found' });
+  res.json(bill);
+});
+
+// Get all non-billed orders for a table (for generating a combined bill)
+app.get('/api/bill/:table', (req, res) => {
+  const table = req.params.table;
+  const orders = db.get('orders')
+    .filter(o => String(o.table) === String(table) && o.type === 'order' && o.status !== 'billed')
+    .value();
+  res.json(orders);
+});
+
+// Generate a bill: combine selected orders, apply discount, mark as billed
+app.post('/api/bill', (req, res) => {
+  const { table, orderIds, discountType, discountValue } = req.body;
+  if (!table || !orderIds || orderIds.length === 0) {
+    return res.status(400).json({ error: 'Table and at least one order required' });
+  }
+
+  const orders = db.get('orders').filter(o => orderIds.includes(o.id)).value();
+  const allItems = orders.flatMap(o => o.items);
+  const subtotal = allItems.reduce((s, i) => s + i.price * i.qty, 0);
+
+  let discountAmount = 0;
+  if (discountType === 'percent') {
+    discountAmount = Math.round(subtotal * (parseFloat(discountValue) || 0) / 100);
+  } else if (discountType === 'flat') {
+    discountAmount = Math.min(parseFloat(discountValue) || 0, subtotal);
+  }
+
+  const finalTotal = subtotal - discountAmount;
+
+  const billId = db.get('nextBillId').value() || 1;
+  const bill = {
+    id: billId,
+    table,
+    orderIds,
+    items: allItems,
+    subtotal,
+    discountType: discountType || 'none',
+    discountValue: discountValue || 0,
+    discountAmount,
+    finalTotal,
+    time: new Date().toISOString()
+  };
+
+  db.get('bills').push(bill).write();
+  db.set('nextBillId', billId + 1).write();
+
+  // Mark those orders as billed so they don't show up again
+  orderIds.forEach(id => {
+    db.get('orders').find({ id }).assign({ status: 'billed' }).write();
+  });
+
+  res.json({ success: true, bill });
+});
+
+// Get a specific bill (for printing/reprinting)
+app.get('/api/bill/receipt/:id', (req, res) => {
+  const bill = db.get('bills').find({ id: parseInt(req.params.id) }).value();
+  if (!bill) return res.status(404).json({ error: 'Bill not found' });
+  res.json(bill);
+});
+
 // Generate QR codes for all tables
 app.get('/api/qrcodes', async (req, res) => {
   const { tables = 25, baseUrl = `http://localhost:${PORT}` } = req.query;
@@ -124,6 +192,7 @@ app.get('/menu', (req, res) => res.sendFile(path.join(__dirname, 'public/menu.ht
 app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public/dashboard.html')));
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public/admin.html')));
 app.get('/qrcodes', (req, res) => res.sendFile(path.join(__dirname, 'public/qrcodes.html')));
+app.get('/bill', (req, res) => res.sendFile(path.join(__dirname, 'public/bill.html')));
 
 app.listen(PORT, () => {
   console.log(`\n☕ The Brewtique is running at http://localhost:${PORT}`);

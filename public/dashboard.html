@@ -74,6 +74,8 @@
   .btn-done:hover { background: rgba(80,80,80,0.3); }
   .btn-dismiss { background: var(--waiter-bg); color: var(--waiter-text); }
   .btn-dismiss:hover { background: rgba(140,40,160,0.3); }
+  .btn-bill { background: var(--accent-soft); color: var(--accent); }
+  .btn-bill:hover { background: rgba(200,101,26,0.3); }
 
   .empty-state { grid-column: 1/-1; text-align: center; padding: 60px 20px; color: var(--muted); }
   .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
@@ -92,6 +94,7 @@
       <span class="live-label">Live</span>
     </div>
     <a href="/admin" class="nav-link">Menu editor</a>
+    <a href="/bill" class="nav-link">🧾 Billing</a>
     <a href="/qrcodes" class="nav-link">QR codes</a>
   </div>
 </div>
@@ -168,6 +171,7 @@ function renderOrders() {
       : o.status === 'waiter'
       ? `<button class="action-btn btn-dismiss" onclick="setStatus(${o.id},'done')">Dismiss</button>`
       : `<span style="font-size:12px;color:var(--muted);">Completed</span>`;
+    const billLink = !isWaiter ? `<a href="/bill?table=${o.table}" class="action-btn btn-bill" style="text-decoration:none;display:inline-block;">🧾 Bill</a>` : '';
     return `<div class="order-card ${isWaiter ? 'waiter-call' : ''}">
       <div class="order-top">
         <div><div class="order-table">Table ${o.table}</div><div class="order-time">${time}</div></div>
@@ -176,7 +180,7 @@ function renderOrders() {
       <div class="order-items">${items}</div>
       <div class="order-total">
         ${o.total > 0 ? '₹' + o.total : '&nbsp;'}
-        <div class="order-actions">${actions}</div>
+        <div class="order-actions">${actions}${billLink}</div>
       </div>
     </div>`;
   }).join('');

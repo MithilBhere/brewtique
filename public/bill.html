@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Brewtique – Generate Bill</title>
+<style>
+  :root {
+    --bg: #1A0F0A;
+    --surface: #241510;
+    --card: #2E1C12;
+    --border: #3D2318;
+    --text: #F5EDE6;
+    --muted: #9A7060;
+    --accent: #C8651A;
+    --accent-soft: rgba(200,101,26,0.15);
+    --green: #5CE89B;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; }
+  .logo { font-size: 18px; font-weight: 700; font-family: Georgia, serif; }
+  .logo span { color: var(--accent); }
+  .nav-link { font-size: 13px; color: var(--muted); text-decoration: none; padding: 6px 12px; border-radius: 8px; }
+  .nav-link:hover { color: var(--text); background: var(--card); }
+
+  .container { max-width: 480px; margin: 0 auto; padding: 24px; }
+
+  .table-select { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 18px; margin-bottom: 16px; }
+  .table-select label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 8px; }
+  .table-select-row { display: flex; gap: 8px; }
+  input[type="number"], input[type="text"] { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; color: var(--text); font-size: 14px; width: 100%; }
+  input:focus { outline: none; border-color: var(--accent); }
+  .btn { background: var(--accent); color: white; border: none; border-radius: 8px; padding: 10px 18px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .btn:hover { background: #A8510F; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .order-block { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 10px; }
+  .order-block-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .order-block-header input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); }
+  .order-block-title { font-size: 13px; font-weight: 600; flex: 1; }
+  .order-block-total { font-size: 13px; font-weight: 700; color: var(--accent); }
+  .order-item-line { font-size: 12px; color: var(--muted); padding: 2px 0 2px 28px; }
+
+  .empty { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 14px; }
+
+  .bill-summary { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 18px; margin-top: 16px; }
+  .summary-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; }
+  .summary-row.muted { color: var(--muted); }
+  .summary-row.total { border-top: 1px solid var(--border); margin-top: 8px; padding-top: 12px; font-size: 18px; font-weight: 700; color: var(--accent); }
+
+  .discount-section { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+  .discount-label { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+  .discount-toggle { display: flex; gap: 8px; margin-bottom: 10px; }
+  .toggle-btn { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-size: 13px; cursor: pointer; }
+  .toggle-btn.active { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+  .discount-input-row { display: flex; gap: 8px; align-items: center; }
+  .discount-input-row input { flex: 1; }
+  .discount-unit { font-size: 14px; color: var(--muted); min-width: 24px; }
+
+  .generate-btn { width: 100%; background: var(--accent); color: white; border: none; border-radius: 10px; padding: 14px; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 16px; }
+  .generate-btn:hover { background: #A8510F; }
+  .generate-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Receipt modal */
+  .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
+  .overlay.show { display: flex; }
+  .receipt { background: white; color: #2C1810; border-radius: 12px; padding: 28px 24px; width: 100%; max-width: 340px; font-family: 'Courier New', monospace; }
+  .receipt-header { text-align: center; margin-bottom: 16px; border-bottom: 1px dashed #ccc; padding-bottom: 12px; }
+  .receipt-cafe { font-size: 18px; font-weight: 700; }
+  .receipt-meta { font-size: 11px; color: #888; margin-top: 4px; }
+  .receipt-line { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; }
+  .receipt-divider { border-top: 1px dashed #ccc; margin: 10px 0; }
+  .receipt-total-row { display: flex; justify-content: space-between; font-size: 16px; font-weight: 700; padding-top: 8px; }
+  .receipt-footer { text-align: center; font-size: 11px; color: #888; margin-top: 16px; }
+  .receipt-actions { display: flex; gap: 8px; margin-top: 20px; }
+  .receipt-actions button { flex: 1; padding: 10px; border-radius: 8px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; font-family: sans-serif; }
+  .btn-print { background: #2C1810; color: white; }
+  .btn-close { background: #eee; color: #2C1810; }
+
+  @media print {
+    body * { visibility: hidden; }
+    .receipt, .receipt * { visibility: visible; }
+    .receipt { position: fixed; top: 0; left: 0; box-shadow: none; }
+    .receipt-actions { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">The Brew<span>tique</span> — Billing</div>
+  <a href="/dashboard" class="nav-link">← Dashboard</a>
+</div>
+
+<div class="container">
+  <div class="table-select">
+    <label>Table number</label>
+    <div class="table-select-row">
+      <input type="number" id="table-input" placeholder="e.g. 4" min="1">
+      <button class="btn" onclick="loadOrders()">Load orders</button>
+    </div>
+  </div>
+
+  <div id="orders-container"></div>
+
+  <div class="bill-summary" id="summary-box" style="display:none;">
+    <div class="summary-row"><span>Subtotal</span><span id="sum-subtotal">₹0</span></div>
+    <div class="summary-row muted" id="sum-discount-row" style="display:none;"><span id="sum-discount-label">Discount</span><span id="sum-discount">−₹0</span></div>
+    <div class="summary-row total"><span>Total payable</span><span id="sum-total">₹0</span></div>
+
+    <div class="discount-section">
+      <div class="discount-label">Apply discount</div>
+      <div class="discount-toggle">
+        <button class="toggle-btn active" id="toggle-none" onclick="setDiscountType('none')">No discount</button>
+        <button class="toggle-btn" id="toggle-percent" onclick="setDiscountType('percent')">% Percent</button>
+        <button class="toggle-btn" id="toggle-flat" onclick="setDiscountType('flat')">₹ Flat</button>
+      </div>
+      <div class="discount-input-row" id="discount-input-row" style="display:none;">
+        <input type="number" id="discount-value" placeholder="0" min="0" oninput="recalculate()">
+        <span class="discount-unit" id="discount-unit">%</span>
+      </div>
+    </div>
+
+    <button class="generate-btn" id="generate-btn" onclick="generateBill()">Generate bill →</button>
+  </div>
+</div>
+
+<div class="overlay" id="receipt-overlay">
+  <div class="receipt" id="receipt-content"></div>
+</div>
+
+<script>
+let currentOrders = [];
+let selectedIds = new Set();
+let discountType = 'none';
+let currentTable = null;
+
+async function loadOrders() {
+  const table = document.getElementById('table-input').value;
+  if (!table) { alert('Enter a table number'); return; }
+  currentTable = table;
+
+  const res = await fetch(`/api/bill/${table}`);
+  currentOrders = await res.json();
+  selectedIds = new Set(currentOrders.map(o => o.id));
+
+  renderOrders();
+  recalculate();
+}
+
+function renderOrders() {
+  const container = document.getElementById('orders-container');
+  if (currentOrders.length === 0) {
+    container.innerHTML = '<div class="empty">No unbilled orders for this table.</div>';
+    document.getElementById('summary-box').style.display = 'none';
+    return;
+  }
+  container.innerHTML = currentOrders.map(o => {
+    const time = new Date(o.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    const total = o.items.reduce((s, i) => s + i.price * i.qty, 0);
+    return `<div class="order-block">
+      <div class="order-block-header">
+        <input type="checkbox" checked onchange="toggleOrder(${o.id}, this.checked)">
+        <div class="order-block-title">Order #${o.id} · ${time}</div>
+        <div class="order-block-total">₹${total}</div>
+      </div>
+      ${o.items.map(i => `<div class="order-item-line">${i.qty}× ${i.name} — ₹${i.price * i.qty}</div>`).join('')}
+    </div>`;
+  }).join('');
+  document.getElementById('summary-box').style.display = 'block';
+}
+
+function toggleOrder(id, checked) {
+  if (checked) selectedIds.add(id); else selectedIds.delete(id);
+  recalculate();
+}
+
+function setDiscountType(type) {
+  discountType = type;
+  document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('toggle-' + type).classList.add('active');
+  const row = document.getElementById('discount-input-row');
+  const unit = document.getElementById('discount-unit');
+  if (type === 'none') {
+    row.style.display = 'none';
+    document.getElementById('discount-value').value = '';
+  } else {
+    row.style.display = 'flex';
+    unit.textContent = type === 'percent' ? '%' : '₹';
+  }
+  recalculate();
+}
+
+function recalculate() {
+  const selected = currentOrders.filter(o => selectedIds.has(o.id));
+  const allItems = selected.flatMap(o => o.items);
+  const subtotal = allItems.reduce((s, i) => s + i.price * i.qty, 0);
+
+  let discountAmount = 0;
+  const discountValue = parseFloat(document.getElementById('discount-value').value) || 0;
+  if (discountType === 'percent') {
+    discountAmount = Math.round(subtotal * discountValue / 100);
+  } else if (discountType === 'flat') {
+    discountAmount = Math.min(discountValue, subtotal);
+  }
+
+  const finalTotal = subtotal - discountAmount;
+
+  document.getElementById('sum-subtotal').textContent = '₹' + subtotal;
+  document.getElementById('sum-total').textContent = '₹' + finalTotal;
+
+  const discountRow = document.getElementById('sum-discount-row');
+  if (discountAmount > 0) {
+    discountRow.style.display = 'flex';
+    document.getElementById('sum-discount-label').textContent = discountType === 'percent' ? `Discount (${discountValue}%)` : 'Discount';
+    document.getElementById('sum-discount').textContent = '−₹' + discountAmount;
+  } else {
+    discountRow.style.display = 'none';
+  }
+
+  document.getElementById('generate-btn').disabled = selected.length === 0;
+}
+
+async function generateBill() {
+  const selected = currentOrders.filter(o => selectedIds.has(o.id));
+  if (selected.length === 0) return;
+
+  const discountValue = parseFloat(document.getElementById('discount-value').value) || 0;
+
+  const res = await fetch('/api/bill', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      table: currentTable,
+      orderIds: selected.map(o => o.id),
+      discountType,
+      discountValue
+    })
+  });
+  const data = await res.json();
+  if (data.success) {
+    showReceipt(data.bill);
+    // refresh order list (billed orders now removed)
+    loadOrders();
+  }
+}
+
+function showReceipt(bill) {
+  const time = new Date(bill.time).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+  const itemLines = bill.items.map(i => `
+    <div class="receipt-line"><span>${i.qty}× ${i.name}</span><span>₹${i.price * i.qty}</span></div>
+  `).join('');
+
+  const discountLine = bill.discountAmount > 0 ? `
+    <div class="receipt-line"><span>Discount${bill.discountType === 'percent' ? ' (' + bill.discountValue + '%)' : ''}</span><span>−₹${bill.discountAmount}</span></div>
+  ` : '';
+
+  document.getElementById('receipt-content').innerHTML = `
+    <div class="receipt-header">
+      <div class="receipt-cafe">The Brewtique</div>
+      <div class="receipt-meta">Table ${bill.table} · Bill #${bill.id}</div>
+      <div class="receipt-meta">${time}</div>
+    </div>
+    ${itemLines}
+    <div class="receipt-divider"></div>
+    <div class="receipt-line"><span>Subtotal</span><span>₹${bill.subtotal}</span></div>
+    ${discountLine}
+    <div class="receipt-divider"></div>
+    <div class="receipt-total-row"><span>Total</span><span>₹${bill.finalTotal}</span></div>
+    <div class="receipt-footer">Thank you for visiting!</div>
+    <div class="receipt-actions">
+      <button class="btn-print" onclick="window.print()">🖨️ Print</button>
+      <button class="btn-close" onclick="closeReceipt()">Close</button>
+    </div>
+  `;
+  document.getElementById('receipt-overlay').classList.add('show');
+}
+
+function closeReceipt() {
+  document.getElementById('receipt-overlay').classList.remove('show');
+  setDiscountType('none');
+}
+
+// Allow pre-filling table number via ?table= in URL (e.g. linked from dashboard)
+const params = new URLSearchParams(location.search);
+if (params.get('table')) {
+  document.getElementById('table-input').value = params.get('table');
+  loadOrders();
+}
+</script>
+</body>
+</html>
