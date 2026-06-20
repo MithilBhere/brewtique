@@ -1,0 +1,76 @@
+{
+  "menu": [
+    {
+      "id": 1,
+      "category": "Hot Drinks",
+      "name": "Espresso",
+      "desc": "Double shot, rich & bold",
+      "price": 120
+    },
+    {
+      "id": 2,
+      "category": "Hot Drinks",
+      "name": "Cappuccino",
+      "desc": "Espresso, steamed milk & foam",
+      "price": 180
+    },
+    {
+      "id": 3,
+      "category": "Hot Drinks",
+      "name": "Masala Chai",
+      "desc": "Spiced Indian tea with milk",
+      "price": 100
+    },
+    {
+      "id": 4,
+      "category": "Hot Drinks",
+      "name": "Filter Coffee",
+      "desc": "South Indian style, decoction",
+      "price": 90
+    },
+    {
+      "id": 5,
+      "category": "Cold Drinks",
+      "name": "Cold Brew",
+      "desc": "18-hour steeped, smooth finish",
+      "price": 220
+    },
+    {
+      "id": 6,
+      "category": "Cold Drinks",
+      "name": "Mango Smoothie",
+      "desc": "Alphonso mango, yogurt blend",
+      "price": 200
+    },
+    {
+      "id": 7,
+      "category": "Food",
+      "name": "Butter Croissant",
+      "desc": "Freshly baked, flaky layers",
+      "price": 150
+    },
+    {
+      "id": 8,
+      "category": "Food",
+      "name": "Veg Sandwich",
+      "desc": "Grilled with cheese & veggies",
+      "price": 200
+    },
+    {
+      "id": 9,
+      "category": "Food",
+      "name": "Banana Bread",
+      "desc": "Moist slice, walnuts & honey",
+      "price": 130
+    },
+    {
+      "id": 10,
+      "category": "Food",
+      "name": "Avocado Toast",
+      "desc": "Multigrain, chilli flakes",
+      "price": 250
+    }
+  ],
+  "orders": [],
+  "nextOrderId": 1
+}

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Brewtique – Dashboard</title>
+<style>
+  :root {
+    --bg: #1A0F0A;
+    --surface: #241510;
+    --card: #2E1C12;
+    --border: #3D2318;
+    --text: #F5EDE6;
+    --muted: #9A7060;
+    --accent: #C8651A;
+    --accent-soft: rgba(200,101,26,0.15);
+    --new: #1D6A3A;
+    --new-bg: rgba(29,106,58,0.15);
+    --new-text: #5CE89B;
+    --prep-bg: rgba(180,120,20,0.15);
+    --prep-text: #F0B840;
+    --ready-bg: rgba(30,100,200,0.15);
+    --ready-text: #6AADFF;
+    --waiter-bg: rgba(140,40,160,0.15);
+    --waiter-text: #D47AFF;
+    --done-bg: rgba(80,80,80,0.15);
+    --done-text: #909090;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
+  .logo { font-size: 18px; font-weight: 700; font-family: Georgia, serif; }
+  .logo span { color: var(--accent); }
+  .topbar-right { display: flex; align-items: center; gap: 16px; }
+  .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #5CE89B; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .live-label { font-size: 12px; color: var(--muted); }
+  .nav-link { font-size: 13px; color: var(--muted); text-decoration: none; padding: 6px 12px; border-radius: 8px; transition: all 0.15s; }
+  .nav-link:hover { color: var(--text); background: var(--card); }
+
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; padding: 20px 24px; }
+  .stat { background: var(--card); border-radius: 12px; padding: 16px; border: 1px solid var(--border); }
+  .stat-num { font-size: 28px; font-weight: 700; color: var(--text); }
+  .stat-label { font-size: 11px; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.08em; }
+
+  .filters { display: flex; gap: 8px; padding: 0 24px 16px; }
+  .filter-btn { padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-size: 13px; cursor: pointer; transition: all 0.15s; }
+  .filter-btn:hover, .filter-btn.active { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+
+  .orders { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; padding: 0 24px 24px; }
+  .order-card { background: var(--card); border-radius: 14px; border: 1px solid var(--border); overflow: hidden; }
+  .order-card.waiter-call { border-color: rgba(140,40,160,0.4); }
+  .order-top { padding: 14px 16px 10px; display: flex; justify-content: space-between; align-items: flex-start; }
+  .order-table { font-size: 22px; font-weight: 700; color: var(--text); }
+  .order-time { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .badge { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px; }
+  .badge-new { background: var(--new-bg); color: var(--new-text); }
+  .badge-preparing { background: var(--prep-bg); color: var(--prep-text); }
+  .badge-ready { background: var(--ready-bg); color: var(--ready-text); }
+  .badge-waiter { background: var(--waiter-bg); color: var(--waiter-text); }
+  .badge-done { background: var(--done-bg); color: var(--done-text); }
+
+  .order-items { padding: 0 16px 12px; }
+  .order-item-row { font-size: 13px; color: var(--muted); padding: 3px 0; }
+  .order-total { font-size: 14px; font-weight: 700; color: var(--accent); padding: 10px 16px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .order-actions { display: flex; gap: 8px; }
+  .action-btn { font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 8px; border: none; cursor: pointer; transition: all 0.15s; }
+  .btn-start { background: var(--new-bg); color: var(--new-text); }
+  .btn-start:hover { background: rgba(29,106,58,0.3); }
+  .btn-ready { background: var(--prep-bg); color: var(--prep-text); }
+  .btn-ready:hover { background: rgba(180,120,20,0.3); }
+  .btn-done { background: var(--done-bg); color: var(--done-text); }
+  .btn-done:hover { background: rgba(80,80,80,0.3); }
+  .btn-dismiss { background: var(--waiter-bg); color: var(--waiter-text); }
+  .btn-dismiss:hover { background: rgba(140,40,160,0.3); }
+
+  .empty-state { grid-column: 1/-1; text-align: center; padding: 60px 20px; color: var(--muted); }
+  .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-state p { font-size: 15px; }
+
+  .sound-toggle { font-size: 12px; color: var(--muted); cursor: pointer; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">The Brew<span>tique</span> — Staff</div>
+  <div class="topbar-right">
+    <div style="display:flex;align-items:center;gap:6px;">
+      <div class="live-dot"></div>
+      <span class="live-label">Live</span>
+    </div>
+    <a href="/admin" class="nav-link">Menu editor</a>
+    <a href="/qrcodes" class="nav-link">QR codes</a>
+  </div>
+</div>
+
+<div class="stats">
+  <div class="stat"><div class="stat-num" id="s-new">0</div><div class="stat-label">New</div></div>
+  <div class="stat"><div class="stat-num" id="s-prep">0</div><div class="stat-label">Preparing</div></div>
+  <div class="stat"><div class="stat-num" id="s-ready">0</div><div class="stat-label">Ready</div></div>
+  <div class="stat"><div class="stat-num" id="s-waiter">0</div><div class="stat-label">Waiter calls</div></div>
+</div>
+
+<div class="filters">
+  <button class="filter-btn active" onclick="setFilter('all', this)">All</button>
+  <button class="filter-btn" onclick="setFilter('new', this)">New</button>
+  <button class="filter-btn" onclick="setFilter('preparing', this)">Preparing</button>
+  <button class="filter-btn" onclick="setFilter('ready', this)">Ready</button>
+  <button class="filter-btn" onclick="setFilter('waiter', this)">Waiter calls</button>
+  <button class="filter-btn" onclick="setFilter('done', this)">Done</button>
+</div>
+
+<div class="orders" id="orders-grid"></div>
+
+<script>
+let allOrders = [];
+let activeFilter = 'all';
+let prevIds = new Set();
+
+function setFilter(f, btn) {
+  activeFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderOrders();
+}
+
+async function loadOrders() {
+  const res = await fetch('/api/orders');
+  allOrders = await res.json();
+  const newIds = new Set(allOrders.filter(o => o.status === 'new').map(o => o.id));
+  // highlight new if changed
+  if (prevIds.size > 0) {
+    newIds.forEach(id => { if (!prevIds.has(id)) { /* could play sound here */ } });
+  }
+  prevIds = newIds;
+  updateStats();
+  renderOrders();
+}
+
+function updateStats() {
+  document.getElementById('s-new').textContent = allOrders.filter(o => o.status === 'new').length;
+  document.getElementById('s-prep').textContent = allOrders.filter(o => o.status === 'preparing').length;
+  document.getElementById('s-ready').textContent = allOrders.filter(o => o.status === 'ready').length;
+  document.getElementById('s-waiter').textContent = allOrders.filter(o => o.status === 'waiter').length;
+}
+
+function renderOrders() {
+  const filtered = activeFilter === 'all' ? allOrders : allOrders.filter(o => o.status === activeFilter);
+  const grid = document.getElementById('orders-grid');
+  if (filtered.length === 0) {
+    grid.innerHTML = `<div class="empty-state"><div class="icon">☕</div><p>No orders here. All quiet!</p></div>`;
+    return;
+  }
+  grid.innerHTML = filtered.map(o => {
+    const isWaiter = o.type === 'waiter';
+    const badge = `<span class="badge badge-${o.status}">${o.status === 'new' ? 'New' : o.status === 'preparing' ? 'Preparing' : o.status === 'ready' ? 'Ready' : o.status === 'waiter' ? 'Waiter call' : 'Done'}</span>`;
+    const time = new Date(o.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    const items = isWaiter ? '<div class="order-item-row" style="color:#D47AFF;">Customer needs assistance</div>' :
+      o.items.map(i => `<div class="order-item-row">${i.qty}× ${i.name}</div>`).join('');
+    const actions = o.status === 'new' && !isWaiter
+      ? `<button class="action-btn btn-start" onclick="setStatus(${o.id},'preparing')">Start preparing</button>`
+      : o.status === 'preparing'
+      ? `<button class="action-btn btn-ready" onclick="setStatus(${o.id},'ready')">Mark ready</button>`
+      : o.status === 'ready'
+      ? `<button class="action-btn btn-done" onclick="setStatus(${o.id},'done')">Done</button>`
+      : o.status === 'waiter'
+      ? `<button class="action-btn btn-dismiss" onclick="setStatus(${o.id},'done')">Dismiss</button>`
+      : `<span style="font-size:12px;color:var(--muted);">Completed</span>`;
+    return `<div class="order-card ${isWaiter ? 'waiter-call' : ''}">
+      <div class="order-top">
+        <div><div class="order-table">Table ${o.table}</div><div class="order-time">${time}</div></div>
+        ${badge}
+      </div>
+      <div class="order-items">${items}</div>
+      <div class="order-total">
+        ${o.total > 0 ? '₹' + o.total : '&nbsp;'}
+        <div class="order-actions">${actions}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function setStatus(id, status) {
+  await fetch(`/api/orders/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status })
+  });
+  await loadOrders();
+}
+
+loadOrders();
+setInterval(loadOrders, 5000);
+</script>
+</body>
+</html>

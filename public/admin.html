@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Brewtique – Menu Editor</title>
+<style>
+  :root {
+    --bg: #1A0F0A;
+    --surface: #241510;
+    --card: #2E1C12;
+    --border: #3D2318;
+    --text: #F5EDE6;
+    --muted: #9A7060;
+    --accent: #C8651A;
+    --accent-soft: rgba(200,101,26,0.15);
+    --danger: #E25C5C;
+    --danger-soft: rgba(226,92,92,0.15);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
+  .logo { font-size: 18px; font-weight: 700; font-family: Georgia, serif; }
+  .logo span { color: var(--accent); }
+  .nav-link { font-size: 13px; color: var(--muted); text-decoration: none; padding: 6px 12px; border-radius: 8px; transition: all 0.15s; }
+  .nav-link:hover { color: var(--text); background: var(--card); }
+
+  .container { max-width: 720px; margin: 0 auto; padding: 24px; }
+  .section-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+
+  .add-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 18px; margin-bottom: 24px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .form-row.full { grid-template-columns: 1fr; }
+  input, select { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; color: var(--text); font-size: 13px; font-family: sans-serif; }
+  input:focus, select:focus { outline: none; border-color: var(--accent); }
+  .btn-add { background: var(--accent); color: white; border: none; border-radius: 8px; padding: 10px 18px; font-size: 13px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 4px; }
+  .btn-add:hover { background: #A8510F; }
+
+  .category-group { margin-bottom: 20px; }
+  .category-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 8px; }
+  .menu-row { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .menu-row-info { flex: 1; }
+  .menu-row-name { font-size: 14px; font-weight: 600; }
+  .menu-row-desc { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .menu-row-price { font-size: 14px; font-weight: 700; color: var(--accent); min-width: 60px; text-align: right; }
+  .icon-btn { background: transparent; border: none; cursor: pointer; font-size: 14px; padding: 6px; border-radius: 6px; color: var(--muted); }
+  .icon-btn:hover { background: var(--danger-soft); color: var(--danger); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">The Brew<span>tique</span> — Menu Editor</div>
+  <div style="display:flex;gap:8px;">
+    <a href="/dashboard" class="nav-link">Dashboard</a>
+    <a href="/qrcodes" class="nav-link">QR codes</a>
+  </div>
+</div>
+
+<div class="container">
+  <div class="section-title">Add a new item</div>
+  <div class="add-card">
+    <div class="form-row">
+      <input type="text" id="new-name" placeholder="Item name (e.g. Latte)">
+      <input type="text" id="new-category" placeholder="Category (e.g. Hot Drinks)">
+    </div>
+    <div class="form-row full">
+      <input type="text" id="new-desc" placeholder="Short description">
+    </div>
+    <div class="form-row">
+      <input type="number" id="new-price" placeholder="Price (₹)">
+      <div></div>
+    </div>
+    <button class="btn-add" onclick="addItem()">+ Add to menu</button>
+  </div>
+
+  <div class="section-title">Current menu</div>
+  <div id="menu-list"></div>
+</div>
+
+<script>
+let menuData = [];
+
+async function loadMenu() {
+  const res = await fetch('/api/menu');
+  menuData = await res.json();
+  renderMenu();
+}
+
+function renderMenu() {
+  const categories = [...new Set(menuData.map(i => i.category))];
+  const list = document.getElementById('menu-list');
+  list.innerHTML = categories.map(cat => `
+    <div class="category-group">
+      <div class="category-label">${cat}</div>
+      ${menuData.filter(i => i.category === cat).map(item => `
+        <div class="menu-row">
+          <div class="menu-row-info">
+            <div class="menu-row-name">${item.name}</div>
+            <div class="menu-row-desc">${item.desc}</div>
+          </div>
+          <div class="menu-row-price">₹${item.price}</div>
+          <button class="icon-btn" onclick="deleteItem(${item.id})">🗑️</button>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+}
+
+async function addItem() {
+  const name = document.getElementById('new-name').value.trim();
+  const category = document.getElementById('new-category').value.trim();
+  const desc = document.getElementById('new-desc').value.trim();
+  const price = parseFloat(document.getElementById('new-price').value);
+
+  if (!name || !category || !price) {
+    alert('Please fill in at least name, category, and price.');
+    return;
+  }
+
+  await fetch('/api/menu', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, category, desc, price })
+  });
+
+  document.getElementById('new-name').value = '';
+  document.getElementById('new-category').value = '';
+  document.getElementById('new-desc').value = '';
+  document.getElementById('new-price').value = '';
+
+  loadMenu();
+}
+
+async function deleteItem(id) {
+  if (!confirm('Remove this item from the menu?')) return;
+  await fetch(`/api/menu/${id}`, { method: 'DELETE' });
+  loadMenu();
+}
+
+loadMenu();
+</script>
+</body>
+</html>

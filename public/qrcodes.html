@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Brewtique – Table QR Codes</title>
+<style>
+  :root {
+    --cream: #FAF7F2;
+    --brown: #2C1810;
+    --brown-mid: #5C3D2E;
+    --brown-light: #8B6355;
+    --accent: #C8651A;
+    --border: #E8DDD4;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: sans-serif; background: var(--cream); color: var(--brown); min-height: 100vh; }
+
+  .topbar { background: var(--brown); color: white; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; }
+  .logo { font-size: 18px; font-weight: 700; font-family: Georgia, serif; }
+  .logo span { color: #D4956A; }
+  .nav-link { font-size: 13px; color: rgba(255,255,255,0.7); text-decoration: none; padding: 6px 12px; }
+  .nav-link:hover { color: white; }
+
+  .toolbar { max-width: 1000px; margin: 0 auto; padding: 20px 24px 0; display: flex; align-items: center; gap: 12px; }
+  .toolbar label { font-size: 13px; color: var(--brown-light); }
+  .toolbar input { width: 70px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; }
+  .toolbar button { background: var(--accent); color: white; border: none; border-radius: 6px; padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .toolbar button:hover { background: #A8510F; }
+  .toolbar button.secondary { background: white; color: var(--brown-mid); border: 1px solid var(--border); }
+
+  .grid { max-width: 1000px; margin: 0 auto; padding: 20px 24px; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
+  .qr-card { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 16px; text-align: center; page-break-inside: avoid; }
+  .qr-card img { width: 100%; max-width: 150px; border-radius: 6px; }
+  .qr-table-label { font-size: 14px; font-weight: 700; margin-top: 10px; }
+  .qr-cafe-label { font-size: 11px; color: var(--brown-light); margin-top: 2px; }
+
+  @media print {
+    .topbar, .toolbar { display: none; }
+    body { background: white; }
+    .grid { padding: 0; }
+    .qr-card { box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">The Brew<span>tique</span> — QR Codes</div>
+  <div style="display:flex;gap:8px;">
+    <a href="/dashboard" class="nav-link">Dashboard</a>
+    <a href="/admin" class="nav-link">Menu editor</a>
+  </div>
+</div>
+
+<div class="toolbar">
+  <label>Number of tables:</label>
+  <input type="number" id="table-count" value="20" min="1" max="100">
+  <button onclick="generateCodes()">Generate</button>
+  <button class="secondary" onclick="window.print()">🖨️ Print all</button>
+</div>
+
+<div class="grid" id="qr-grid"></div>
+
+<script>
+async function generateCodes() {
+  const count = document.getElementById('table-count').value || 20;
+  const baseUrl = window.location.origin;
+  const res = await fetch(`/api/qrcodes?tables=${count}&baseUrl=${encodeURIComponent(baseUrl)}`);
+  const qrs = await res.json();
+  const grid = document.getElementById('qr-grid');
+  grid.innerHTML = qrs.map(q => `
+    <div class="qr-card">
+      <img src="${q.qr}" alt="QR code for table ${q.table}">
+      <div class="qr-table-label">Table ${q.table}</div>
+      <div class="qr-cafe-label">The Brewtique</div>
+    </div>
+  `).join('');
+}
+
+generateCodes();
+</script>
+</body>
+</html>
