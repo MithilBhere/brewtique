@@ -7,7 +7,7 @@ const path = require('path');
 const fs = require('fs');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 // DB setup
 const dbDir = path.join(__dirname, 'db');
@@ -119,6 +119,7 @@ app.get('/api/qrcodes', async (req, res) => {
 });
 
 // Serve page routes
+app.get('/', (req, res) => res.redirect('/dashboard'));
 app.get('/menu', (req, res) => res.sendFile(path.join(__dirname, 'public/menu.html')));
 app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public/dashboard.html')));
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public/admin.html')));
